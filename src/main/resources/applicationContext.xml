@@ -4,7 +4,7 @@
     <!-- UserHibernateDaoImpl userHibernateDao = new UserHibernateDaoImpl() -->
     <bean id="userHibernateDao" class="com.sxt.dao.impl.UserHibernateDaoImpl"></bean>
     <!-- UserSericeImpl userSerice = new UserServiceImpl(); -->
-    <bean id="userService" class="com.sxt.service.impl.UserSericeImpl">
+    <bean id="userService" class="com.sxt.service.impl.UserServiceImpl">
         <!-- userService.setUserDao(userHibernateDao); -->
         <property name="userDao" ref="userHibernateDao"></property>
     </bean>

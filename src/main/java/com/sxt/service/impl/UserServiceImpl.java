@@ -14,6 +14,10 @@ public class UserServiceImpl implements UserService {
         this.userDao = userDao;
     }
 
+    public UserServiceImpl() {
+
+    }
+
     public UserDao getUserDao() {
         return userDao;
     }

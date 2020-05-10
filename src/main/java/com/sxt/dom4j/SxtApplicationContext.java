@@ -2,6 +2,8 @@ package com.sxt.dom4j;
 
 import com.sxt.bean.BeanDefination;
 import com.sxt.bean.PropertyDefination;
+import com.sxt.service.UserService;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.spi.LoggerFactory;
 import org.dom4j.Attribute;
@@ -10,7 +12,10 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 
+import java.io.File;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -26,6 +31,8 @@ public class SxtApplicationContext {
 
     public SxtApplicationContext(){
         parseXML();
+        createObject();
+        injectObject();
     }
 
     /**
@@ -110,13 +117,97 @@ public class SxtApplicationContext {
      * 3.回调setter方法,将property节点的ref所引用的对象赋值给属性。
      */
     public void injectObject(){
+        //遍历已创建的map对象
+        if(beansMap != null && beansMap.size()>0){
+            for (Map.Entry<String, BeanDefination> beanMap : beansMap.entrySet()){
+                BeanDefination bean = beanMap.getValue();
+                String beanId = bean.getBeanId();
+                Map<String, PropertyDefination> propsMap = bean.getPropsMap();
+                if(propsMap != null && propsMap.size()>0){
+                    for (Map.Entry<String, PropertyDefination> propMaps : propsMap.entrySet()){
+                        PropertyDefination prop = propMaps.getValue();
+                        //获取属性名称及引用的键值
+                        String refName = prop.getName();
+                        String refId = prop.getRef();
+                        //根据refName获取set方法
+                        String setMethodName = makeSetter(refName);
+                        //获取需注入的对象
+                        Object refObject = objectsMap.get(refId);
+                        //获取beanObect
+                        Object beanObject = objectsMap.get(beanId);
+                        //将对象注入到bean中
 
+                        //1、获取对象的反射对象
+                        Class beanClass = beanObject.getClass();
+
+                        try {
+                            //Method method = beanClass.getMethod(setMethodName, refObject.getClass());
+                            //method.invoke(beanObject,refObject);
+                            for (Method method : beanClass.getMethods()){
+                                if(method.getName().equals(setMethodName)){
+                                    method.invoke(beanObject,refObject);
+                                }
+                            }
+                        }  catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        } catch (InvocationTargetException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                }
+            }
+
+        }
+    }
+
+
+    /**
+     * 根据属性名称获取对应的setter方法名:set+属性的第一个字母大写+其余字母
+     * @param fieldName
+     * @return
+     */
+
+    public String makeSetter(String fieldName){
+
+        return "set"+fieldName.substring(0,1).toUpperCase()+fieldName.substring(1);
+    }
+
+
+    /**
+     * 根据beanId查找bean节点的信息
+     * @param beanId
+     * @return
+     */
+    public BeanDefination getBeanDefinationById(String beanId){
+        return beansMap.get(beanId);
+    }
+
+    /**
+     * 根据beanId查找对应bean的对象
+     * @param beanId
+     * @return
+     */
+    public Object getBean(String beanId){
+        return objectsMap.get(beanId);
     }
     
     
-    public static void main( String[] args ){
-        SxtApplicationContext test = new SxtApplicationContext();
+    public static void main( String[] args ) throws ClassNotFoundException {
+        Class<?> cls = Class.forName("com.sxt.service.impl.UserServiceImpl");
+        //判断cls是否为空
+        if (cls != null){
+            System.out.println("cls不为空");
+        }
+
+        SxtApplicationContext sxtApplicationContext = new SxtApplicationContext();
+        UserService userService = (UserService)sxtApplicationContext.getBean("userService");
+        userService.save();
     }
+    
+    
+
+
 
 
 }
